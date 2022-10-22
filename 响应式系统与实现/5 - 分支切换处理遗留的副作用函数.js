@@ -14,6 +14,7 @@
 let activeEffect
 function effect( fn ) {
     const effectFn = () => {
+        // 调用 cleanup 函数完成清除工作
         cleanup( effectFn )
         activeEffect = effectFn
         fn()
@@ -28,6 +29,7 @@ const bucket = new WeakMap()
 const data = { ok:true,text:"Hello Vue3" }
 const obj = new Proxy( data,{
     get:function( target,key ){
+        debugger
         tarck( target,key )
         return target[key]
     },
@@ -51,8 +53,10 @@ function tarck( target,key ) {
         depsMap.set( key,( deps = new Set() ) )
     }
 
+    // 把当前激活的副作用函数添加到依赖集合 deps 中
     deps.add( activeEffect )
-
+    // deps 是一个与当前副作用函数存在联系的依赖集合
+    // 将其添加到 activeEffect.deps 数据里面
     activeEffect.deps.push( deps )
 }
 
@@ -60,13 +64,21 @@ function tarck( target,key ) {
 function trigger( target,key ) {
     const depsMap = bucket.get( target )
     if( !depsMap ) return
-
     const effects = depsMap.get( key )
-    effects && effects.forEach( fn => fn() )
+    
+    // 处理 Set 无限递归问题
+    const effectsToRun = new Set( effects )
+    effectsToRun && effectsToRun.forEach( effectFn => effectFn() )
 }
 
-function cleanup(){
-    
+function cleanup( effectFn ){
+    // 便利 effectFn.deps 数据
+    for( let i=0;i< effectFn.deps.length;i++ ) {
+        const deps = effectFn.deps[i]   // deps 是依赖集合
+        deps.delete( effectFn )         // 将 effectFn 从依赖集合中删除
+    }
+
+    effectFn.deps.length = 0            // 最后清空 effectFn.deps 数据
 }
 
 effect( () => {
