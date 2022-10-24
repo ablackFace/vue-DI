@@ -12,6 +12,10 @@
  *      如何实现 ？？？
  *          - 在 watch 内部中的 effect 调用 traverse 函数递归读取，代替硬编码操作
  *          - 在 watch 的第一参数中，传入一个 getter 函数，从而指定 watch 进行依赖收集
+ * 如何在回调函数中拿去新值和旧值 ？？？
+ *      - 利用 effect 的 lazy 属性，注册一个懒惰性的 effect
+ *      - 手动调用 effectFn 函数得到返回值(旧值)
+ *      - 当数据变化时触发 scheduler 函数时，重新调用 effectFn 函数并拿去新值
  */
 
 
@@ -169,15 +173,37 @@ function watch( source,cb ) {
         // 否则按照原来的实现方式调用 traverse 递归的读取
         getter = () => traverse(source)
     }
+
+    // 定义旧值和新值
+    let oldValue,newValue
     
-    effect(
+    // effect(
+    //     () => getter(), // 执行 getter
+    //     {
+    //         scheduler(){
+    //             cb()
+    //         }
+    //     }
+    // )
+
+    // 使用 effect 注册副作用函数时，开启 lazy 选项，并把返回值储存到 effectFn 中，方便后续手动调用
+    const effectFn = effect(
         () => getter(), // 执行 getter
         {
+            lazy:true,
             scheduler(){
-                cb()
+                // 在 scheduler 中重新执行副作用函数，得到新值
+                newValue = effectFn()
+                // 将旧值和新值传入回调函数中作为参数
+                cb( newValue,oldValue )
+                // 更新旧值，不然下一次会拿到错误的旧值
+                oldValue = newValue
             }
         }
     )
+    
+    // 手动调用副作用函数，拿到的值就是旧值
+    oldValue = effectFn()
 }
 
 function traverse( value, seen = new Set() ) {
@@ -201,7 +227,12 @@ function traverse( value, seen = new Set() ) {
 // } )
 // obj.foo ++
 
-watch( () => obj.foo,() => {
-    console.log("数据变化了")
+// watch( () => obj.foo,() => {
+//     console.log("数据变化了")
+// } )
+// obj.foo ++
+
+watch( () => obj.foo,( newVal,oldVal ) => {
+    console.log( newVal,oldVal )
 } )
 obj.foo ++
