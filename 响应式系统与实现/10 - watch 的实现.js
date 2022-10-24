@@ -159,8 +159,19 @@ function flushJob() {
 }
 
 function watch( source,cb ) {
+    // 定义 getter
+    let getter
+
+    // 如果 source 是一个函数，说明用户传入的是 getter,直接把 source 赋值给 getter
+    if( typeof source === 'function' ) {
+        getter = source
+    } else {
+        // 否则按照原来的实现方式调用 traverse 递归的读取
+        getter = () => traverse(source)
+    }
+    
     effect(
-        () => traverse(source),
+        () => getter(), // 执行 getter
         {
             scheduler(){
                 cb()
