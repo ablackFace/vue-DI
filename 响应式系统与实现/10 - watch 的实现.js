@@ -7,7 +7,11 @@
  *                  () => console.log(obj.foo),
  *                  { scheduler() { // 当 obj.foo 的值变化的时候，执行 scheduler 调度函数 } }
  *              )
- *      
+ *          在以上的代码中，我们只能实现 obj.foo 的监听，我们需要让 watch 函数具备通用性
+ *          为此，我们需要封装一个通用的读取操作
+ *      如何实现 ？？？
+ *          - 在 watch 内部中的 effect 调用 traverse 函数递归读取，代替硬编码操作
+ *          - 在 watch 的第一参数中，传入一个 getter 函数，从而指定 watch 进行依赖收集
  */
 
 
@@ -156,14 +160,37 @@ function flushJob() {
 
 function watch( source,cb ) {
     effect(
-        () => source.foo,
+        () => traverse(source),
         {
-            scheduler() {
-                cb && cb()
+            scheduler(){
+                cb()
             }
         }
     )
 }
 
-watch( obj,() => console.log("数据变化了") )
+function traverse( value, seen = new Set() ) {
+    // 如果读取的数据是原始值，或者已经被读取了，就什么也不要做
+    if( typeof value !== 'object' || value === null || seen.has( value ) ) return
+
+    seen.add( value )
+
+    for( const k in value ) {
+        traverse( value[k],seen )
+    }
+
+    return value
+}
+
+// watch( obj,() => console.log("数据变化了") )
+// obj.foo ++
+
+// watch( obj,() => {
+//     console.log("数据变化了")
+// } )
+// obj.foo ++
+
+watch( () => obj.foo,() => {
+    console.log("数据变化了")
+} )
 obj.foo ++
