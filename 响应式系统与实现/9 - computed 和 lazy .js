@@ -36,7 +36,19 @@
  *              - 在实现 computed 时，添加值的缓存
  *              - 定义两个变量 value 和 dirty，来表示上一次 计算的值 和 数据是否是脏数据并且是否需要重新计算
  *              - 在 scheduler 调度器中修改 dirty 变量的值，代表如何响应式数据发生变化，即数据为脏数据
- *      
+ *      computed 嵌套的 effect 无法读取值
+ *                  const sumRes = computed( () => obj.foo + obj.bar )
+ *                  effect( () => console.log( sumRes.value ) )
+ *                  obj.foo ++         
+ *              - 在上面的代码中， sumRes 是一个 computed 的计算属性，并且在另外一个 effect 中读取了 sumRes 值
+ *              - 当时修改 obj.foo 的值时，并没有重新触发 computed 的计算
+ *          问题出现在哪里 ？？？
+ *              - 当注册一个计算属性的时候，内部会注册一个副作用函数，并且是懒惰性的，只有当真正读取的时候，才会执行
+ *              - 对于计算属性 getter 函数来说，它里面的响应式数据只会把 computed 内部的 effect 收集
+ *              - 而把计算属性用于另外一个 effect 时，就会发生 effect 嵌套，外层的 effect 不会被内层的 effect 响应式收集
+ *          如何解决 ？？？
+ *              - 当读取计算属性时，手动调用 track 函数进行追踪
+ *              - 当计算属性的响应式发生变化的时候，手动调用 trigger 函数触发响应
  */
 
 
@@ -77,6 +89,8 @@ function computed( getter ) {
         lazy:true,
         scheduler:function(){
             dirty = true
+            // 当计算属性依赖发生变化时，手动调用 trigger 函数触发响应
+            trigger( obj,"value" )
         }
     } )
 
@@ -87,6 +101,8 @@ function computed( getter ) {
                 value = effectFn()
                 dirty = false
             }
+            // 读取 value 时，手动调用 track 函数进行追踪
+            tarck( obj,"value" )
             return value
         }
     }
@@ -138,11 +154,11 @@ function trigger( target,key ) {
     } )
 
     effectsToRun.forEach( effectFn => {
-    if( effectFn.options.scheduler ) {
-        effectFn.options.scheduler( effectFn )
-    } else {
-        effectFn()
-    }
+        if( effectFn.options.scheduler ) {
+            effectFn.options.scheduler( effectFn )
+        } else {
+            effectFn()
+        }
     } )
 }
  
