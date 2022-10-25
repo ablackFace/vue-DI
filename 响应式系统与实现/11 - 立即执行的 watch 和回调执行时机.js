@@ -1,6 +1,16 @@
 /** watch 的两大特新
  * 立即执行的回调函数
  *      通过选项参数 immediate 来指定回调是否需要立即执行
+ *  指定回调函数的执行时机
+ *      指定回调函数的执行时机
+ *          watch(
+ *              () => obj.foo,
+ *              ( newVal,oldVal ) => {
+ *                 console.log( newVal,oldVal ) 
+ *              },
+ *              { flush:'post' }
+ *          )
+ *      当 flush 的值为 'post' 时，代表调度函数需要将副作用函数放到一个微任务队列中，并等待 DOM 更新结束后再执行
  */
 
 let activeEffect
@@ -175,7 +185,14 @@ function watch( source,cb, options = {} ) {
         () => getter(), // 执行 getter
         {
             lazy:true,
-            scheduler:job
+            scheduler:function() {
+                if( options.flush === 'post' ){
+                    const p = Promise.resolve()
+                    p.then( job )
+                } else {
+                    job()
+                }
+            }
         }
     )
 
@@ -201,10 +218,18 @@ function traverse( value, seen = new Set() ) {
     return value
 }
 
+// watch(
+//     () => obj.foo,
+//     ( newVal,oldVal ) => {
+//        console.log( newVal,oldVal ) 
+//     },
+//     { immediate:true }
+// )
+
 watch(
     () => obj.foo,
     ( newVal,oldVal ) => {
        console.log( newVal,oldVal ) 
     },
-    { immediate:true }
+    { flush:'post' }
 )
