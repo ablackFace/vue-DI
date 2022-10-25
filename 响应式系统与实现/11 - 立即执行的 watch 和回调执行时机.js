@@ -1,3 +1,8 @@
+/** watch 的两大特新
+ * 立即执行的回调函数
+ *      通过选项参数 immediate 来指定回调是否需要立即执行
+ */
+
 let activeEffect
 
 const effectStack = []
@@ -140,7 +145,7 @@ function flushJob() {
     } )
 }
 
-function watch( source,cb ) {
+function watch( source,cb, options = {} ) {
     // 定义 getter
     let getter
 
@@ -155,24 +160,32 @@ function watch( source,cb ) {
     // 定义旧值和新值
     let oldValue,newValue
 
+    // 提取 scheduler 调度函数位一个独立的 job 函数
+    const job = () => {
+        // 在 scheduler 中重新执行副作用函数，得到新值
+        newValue = effectFn()
+        // 将旧值和新值传入回调函数中作为参数
+        cb( newValue,oldValue )
+        // 更新旧值，不然下一次会拿到错误的旧值
+        oldValue = newValue
+    }
+
     // 使用 effect 注册副作用函数时，开启 lazy 选项，并把返回值储存到 effectFn 中，方便后续手动调用
     const effectFn = effect(
         () => getter(), // 执行 getter
         {
             lazy:true,
-            scheduler(){
-                // 在 scheduler 中重新执行副作用函数，得到新值
-                newValue = effectFn()
-                // 将旧值和新值传入回调函数中作为参数
-                cb( newValue,oldValue )
-                // 更新旧值，不然下一次会拿到错误的旧值
-                oldValue = newValue
-            }
+            scheduler:job
         }
     )
-    
-    // 手动调用副作用函数，拿到的值就是旧值
-    oldValue = effectFn()
+
+    if( options.immediate ){
+        // 当 immediate 是 true 的时候立即执行 job,从而触发回调执行
+        job()
+    } else {
+        // 手动调用副作用函数，拿到的值就是旧值
+        oldValue = effectFn()
+    }
 }
 
 function traverse( value, seen = new Set() ) {
@@ -187,3 +200,11 @@ function traverse( value, seen = new Set() ) {
 
     return value
 }
+
+watch(
+    () => obj.foo,
+    ( newVal,oldVal ) => {
+       console.log( newVal,oldVal ) 
+    },
+    { immediate:true }
+)
