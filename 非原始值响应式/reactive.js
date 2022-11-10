@@ -60,13 +60,19 @@ const obj = new Proxy( data,{
         return Reflect.get( target,key,receiver )
     },
     set:function( target,key,newVal,receiver ){
+        // 获取旧值
+        const oldVal = target[key]
+
         // 判断属性是否存在，并设置 type
         const type = Object.prototype.hasOwnProperty.call( target,key ) ? "SET" : "ADD"
 
         // 设置属性值
         const res = Reflect.set( target,key,newVal,receiver )
-        // 把副作用函数从桶中取出并执行
-        trigger( target,key,type )
+        
+        // 比较新值和旧值,只要不全等就触发响应
+        if( oldVal !== newVal ) {
+            trigger( target,key,type )
+        }
         return res
     },
     deleteProperty:function( target,key ) {
@@ -227,9 +233,7 @@ function traverse( value, seen = new Set() ) {
 }
 
 effect( () => {
-    for( const key in obj ) {
-        console.log( key )
-    }
+    console.log( "effect=>",obj.foo );
 } )
 
-delete obj.bar
+obj.foo = 1
