@@ -59,8 +59,13 @@ function reactive( obj ) {
             }
 
             tarck( target,key )
-            // 使用 Reflect.get 返回读取到的属性值
-            return Reflect.get( target,key,receiver )
+            // 得到原始值结果
+            const res = Reflect.get( target,key,receiver )
+            // 如果还是一个对象,递归 proxy
+            if( typeof res === "object" && res !== null ) {
+                return reactive( res )
+            }
+            return res
         },
         set:function( target,key,newVal,receiver ){
             // 获取旧值

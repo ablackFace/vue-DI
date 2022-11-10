@@ -1,13 +1,15 @@
 const { reactive, effect } = require("./reactive")
 
-const obj = {}
-const proto = { bar:1 }
-const child = reactive( obj )
-const parent = reactive( proto )
-Object.setPrototypeOf( child,parent )
+const data = {
+    foo:{
+        bar:1
+    }
+}
+
+const obj = reactive( data )
 
 effect( () => {
-    console.log( "effect=>",child.bar )
+    console.log( "effect=>",obj.foo.bar )
 } )
 
-child.bar = 2
+obj.foo.bar = 2
