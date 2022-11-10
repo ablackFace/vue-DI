@@ -50,9 +50,6 @@ function computed( getter ) {
 const bucket = new WeakMap()
 const data = {
     foo:1,
-    get bar() {
-        return this.foo
-    }
 }
 const obj = new Proxy( data,{
     get:function( target,key,receiver ){
@@ -63,6 +60,9 @@ const obj = new Proxy( data,{
     set:function( target,key,newVal ){
         target[key] = newVal
         trigger( target,key )
+    },
+    deleteProperty:function( target,key ) {
+        return Reflect.deleteProperty( target,key )
     }
 } )
 
@@ -188,14 +188,6 @@ function traverse( value, seen = new Set() ) {
     return value
 }
 
-/** 问题分析：
- * -当 effect 注册的副作用函数执行时，会读取 p.bar 属性，它发现 p.bar 是一个访问器属性，
- * -因此执行 getter 函数。由于在getter 函数中通过 this.foo 读取了 foo 属性值，
- * -因此我们认为副作用函数与属性foo 之间也会建立联系。当我们修改 p.foo 的值时应该能够触发响应，
- * -使得副作用函数重新执行才对
- */
-effect( () => {
-    console.log( "effect=>",obj.bar );
-} )
-// 尝试修改 p.foo 的值，副作用函数并没有重新执行
-obj.foo ++
+console.log( obj.foo )
+delete obj.foo
+console.log( obj.foo )
