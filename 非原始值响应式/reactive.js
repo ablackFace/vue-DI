@@ -50,7 +50,7 @@ function computed( getter ) {
 const bucket = new WeakMap()
 const ITERATE_KEY = Symbol()
 const data = {
-    foo:1,
+    foo:1
 }
 const obj = new Proxy( data,{
     get:function( target,key,receiver ){
@@ -97,9 +97,19 @@ function trigger( target,key ) {
     const depsMap = bucket.get( target )
     if( !depsMap ) return
     const effects = depsMap.get( key )
+
+    // 取得与 ITERATE_KEY 关联的副作用函数
+    const iterateEffects = depsMap.get( ITERATE_KEY )
     
     const effectsToRun = new Set()
     effects && effects.forEach( effectFn => {
+        if( effectFn !== activeEffect ) {
+            effectsToRun.add( effectFn )
+        }
+    } )
+
+    // 将与 ITERATE_KEY 相关联的副作用函数添加到 effectsToRun
+    iterateEffects && iterateEffects.forEach( effectFn => {
         if( effectFn !== activeEffect ) {
             effectsToRun.add( effectFn )
         }
@@ -199,5 +209,9 @@ function traverse( value, seen = new Set() ) {
 }
 
 effect( () => {
-    console.log( "foo" in obj )
+    for( const key in obj ) {
+        console.log( key )
+    }
 } )
+
+obj.bar = 2
