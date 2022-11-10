@@ -58,7 +58,11 @@ function createReactive( data,isShallow = false,isReadOnly = false ) {
                 return target
             }
 
-            tarck( target,key )
+            // 非只读的时候才建立副作用联系
+            if( !isReadOnly ) {
+                tarck( target,key )
+            }
+
             // 得到原始值结果
             const res = Reflect.get( target,key,receiver )
 
