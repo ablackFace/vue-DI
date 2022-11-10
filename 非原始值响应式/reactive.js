@@ -58,9 +58,15 @@ const obj = new Proxy( data,{
         // 使用 Reflect.get 返回读取到的属性值
         return Reflect.get( target,key,receiver )
     },
-    set:function( target,key,newVal ){
-        target[key] = newVal
-        trigger( target,key )
+    set:function( target,key,newVal,receiver ){
+        // 判断属性是否存在，并设置 type
+        const type = Object.prototype.hasOwnProperty.call( target,key ) ? "SET" : "ADD"
+
+        // 设置属性值
+        const res = Reflect.set( target,key,newVal,receiver )
+        // 把副作用函数从桶中取出并执行
+        trigger( target,key,type )
+        return res
     },
     deleteProperty:function( target,key ) {
         return Reflect.deleteProperty( target,key )
@@ -93,13 +99,10 @@ function tarck( target,key ) {
     activeEffect.deps.push( deps )
 }
 
-function trigger( target,key ) {
+function trigger( target,key,type ) {
     const depsMap = bucket.get( target )
     if( !depsMap ) return
     const effects = depsMap.get( key )
-
-    // 取得与 ITERATE_KEY 关联的副作用函数
-    const iterateEffects = depsMap.get( ITERATE_KEY )
     
     const effectsToRun = new Set()
     effects && effects.forEach( effectFn => {
@@ -108,12 +111,17 @@ function trigger( target,key ) {
         }
     } )
 
-    // 将与 ITERATE_KEY 相关联的副作用函数添加到 effectsToRun
-    iterateEffects && iterateEffects.forEach( effectFn => {
-        if( effectFn !== activeEffect ) {
-            effectsToRun.add( effectFn )
-        }
-    } )
+    // 如果操作类型时 ADD，才触发 ITERATE_KEY 相关的副作用函数重新执行
+    if( type === "ADD" ) {
+        // 取得与 ITERATE_KEY 关联的副作用函数
+        const iterateEffects = depsMap.get( ITERATE_KEY )
+        // 将与 ITERATE_KEY 相关联的副作用函数添加到 effectsToRun
+        iterateEffects && iterateEffects.forEach( effectFn => {
+            if( effectFn !== activeEffect ) {
+                effectsToRun.add( effectFn )
+            }
+        } )
+    }
 
     effectsToRun.forEach( effectFn => {
         if( effectFn.options.scheduler ) {
@@ -214,4 +222,4 @@ effect( () => {
     }
 } )
 
-obj.bar = 2
+obj.foo = 2
