@@ -50,7 +50,8 @@ function computed( getter ) {
 const bucket = new WeakMap()
 const ITERATE_KEY = Symbol()
 const data = {
-    foo:1
+    foo:1,
+    bar:2
 }
 const obj = new Proxy( data,{
     get:function( target,key,receiver ){
@@ -69,7 +70,16 @@ const obj = new Proxy( data,{
         return res
     },
     deleteProperty:function( target,key ) {
-        return Reflect.deleteProperty( target,key )
+        // 检测被操作的属性是否在对象上存在
+        const hasKey = Object.prototype.hasOwnProperty.call( target,key )
+        // 利用 Reflect.deleProperty 完成属性的删除
+        const res = Reflect.deleteProperty( target,key )
+
+        if( hasKey && res ) {
+            // 只有存在被删除的属性时并且成功删除时,才触发更新
+            trigger( target,key,"DELETE" )
+        }
+        return res
     },
     has:function( target,key ) {
         tarck( target,key )
@@ -111,8 +121,8 @@ function trigger( target,key,type ) {
         }
     } )
 
-    // 如果操作类型时 ADD，才触发 ITERATE_KEY 相关的副作用函数重新执行
-    if( type === "ADD" ) {
+    // 如果操作类型时 ADD 或者 DELETE，才触发 ITERATE_KEY 相关的副作用函数重新执行
+    if( type === "ADD" || type === "DELETE" ) {
         // 取得与 ITERATE_KEY 关联的副作用函数
         const iterateEffects = depsMap.get( ITERATE_KEY )
         // 将与 ITERATE_KEY 相关联的副作用函数添加到 effectsToRun
@@ -222,4 +232,4 @@ effect( () => {
     }
 } )
 
-obj.foo = 2
+delete obj.bar
