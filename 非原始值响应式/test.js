@@ -1,4 +1,4 @@
-const { reactive, effect } = require("./reactive")
+const { shallowReactive, effect } = require("./reactive")
 
 const data = {
     foo:{
@@ -6,7 +6,7 @@ const data = {
     }
 }
 
-const obj = reactive( data )
+const obj = shallowReactive( data )
 
 effect( () => {
     console.log( "effect=>",obj.foo.bar )

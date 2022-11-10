@@ -49,8 +49,8 @@ function computed( getter ) {
 
 const bucket = new WeakMap()
 const ITERATE_KEY = Symbol()
-function reactive( obj ) {
-    return new Proxy( obj,{
+function createReactive( data,isShallow = false ) {
+    return new Proxy( data,{
         get:function( target,key,receiver ){
 
             // 代理对象可以通过 raw 属性访问原始数据
@@ -61,6 +61,12 @@ function reactive( obj ) {
             tarck( target,key )
             // 得到原始值结果
             const res = Reflect.get( target,key,receiver )
+
+            // 如果是浅响应,直接返回数据
+            if( isShallow ){
+                return res
+            }
+
             // 如果还是一个对象,递归 proxy
             if( typeof res === "object" && res !== null ) {
                 return reactive( res )
@@ -108,6 +114,14 @@ function reactive( obj ) {
             return Reflect.ownKeys( target )
         }
     } )
+}
+
+function reactive( data ) {
+    return createReactive( data )
+}
+
+function shallowReactive( data ) {
+    return createReactive( data,true )
 }
 
 function tarck( target,key ) {
@@ -246,6 +260,7 @@ function traverse( value, seen = new Set() ) {
 
 module.exports = {
     reactive,
+    shallowReactive,
     computed,
     effect,
     watch,
