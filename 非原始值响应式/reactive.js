@@ -49,7 +49,7 @@ function computed( getter ) {
 
 const bucket = new WeakMap()
 const ITERATE_KEY = Symbol()
-function createReactive( data,isShallow = false ) {
+function createReactive( data,isShallow = false,isReadOnly = false ) {
     return new Proxy( data,{
         get:function( target,key,receiver ){
 
@@ -74,6 +74,12 @@ function createReactive( data,isShallow = false ) {
             return res
         },
         set:function( target,key,newVal,receiver ){
+            // 如果是只读的，打印警告信息并返回
+            if( isReadOnly ) {
+                console.warn( `属性 ${key} 是只读的` )
+                return true
+            }
+
             // 获取旧值
             const oldVal = target[key]
     
@@ -93,6 +99,11 @@ function createReactive( data,isShallow = false ) {
             return res
         },
         deleteProperty:function( target,key ) {
+            // 如果是只读的，打印警告信息并返回
+            if( isReadOnly ) {
+                console.warn( `属性 ${key} 是只读的` )
+                return true
+            }
             // 检测被操作的属性是否在对象上存在
             const hasKey = Object.prototype.hasOwnProperty.call( target,key )
             // 利用 Reflect.deleProperty 完成属性的删除
@@ -122,6 +133,10 @@ function reactive( data ) {
 
 function shallowReactive( data ) {
     return createReactive( data,true )
+}
+
+function readonly( data ) {
+    return createReactive( data,false,true )
 }
 
 function tarck( target,key ) {
@@ -261,6 +276,7 @@ function traverse( value, seen = new Set() ) {
 module.exports = {
     reactive,
     shallowReactive,
+    readonly,
     computed,
     effect,
     watch,

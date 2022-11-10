@@ -1,15 +1,8 @@
-const { shallowReactive, effect } = require("./reactive")
+const { readonly, effect } = require("./reactive")
 
-const data = {
-    foo:{
-        bar:1
-    }
-}
-
-const obj = shallowReactive( data )
-
+const data = readonly( { foo:1 } )
 effect( () => {
-    console.log( "effect=>",obj.foo.bar )
+    console.log( "effect=>",data.foo )
 } )
-
-obj.foo.bar = 2
+// 尝试修改数据，会得到警告
+data.foo = 2
