@@ -1,6 +1,6 @@
-const { readonly, effect } = require("./reactive")
+const { effect, shallowReadonly } = require("./reactive")
 
-const data = readonly( { foo:{ bar:1 } } )
+const data = shallowReadonly( { foo:{ bar:1 } } )
 effect( () => {
     console.log( "effect=>",data.foo.bar )
 } )

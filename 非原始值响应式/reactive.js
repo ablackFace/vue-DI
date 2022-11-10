@@ -142,6 +142,10 @@ function readonly( data ) {
     return createReactive( data,false,true )
 }
 
+function shallowReadonly( data ) {
+    return createReactive( data,true,true )
+}
+
 function tarck( target,key ) {
     if( !activeEffect ) return
 
@@ -280,6 +284,7 @@ module.exports = {
     reactive,
     shallowReactive,
     readonly,
+    shallowReadonly,
     computed,
     effect,
     watch,
