@@ -63,6 +63,10 @@ const obj = new Proxy( data,{
     },
     deleteProperty:function( target,key ) {
         return Reflect.deleteProperty( target,key )
+    },
+    has:function( target,key ) {
+        tarck( target,key )
+        return Reflect.has( target,key )
     }
 } )
 
@@ -188,6 +192,6 @@ function traverse( value, seen = new Set() ) {
     return value
 }
 
-console.log( obj.foo )
-delete obj.foo
-console.log( obj.foo )
+effect( () => {
+    console.log( "foo" in obj )
+} )
