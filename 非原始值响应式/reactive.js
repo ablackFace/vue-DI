@@ -48,6 +48,7 @@ function computed( getter ) {
 }
 
 const bucket = new WeakMap()
+const ITERATE_KEY = Symbol()
 const data = {
     foo:1,
 }
@@ -67,6 +68,11 @@ const obj = new Proxy( data,{
     has:function( target,key ) {
         tarck( target,key )
         return Reflect.has( target,key )
+    },
+    ownKeys:function( target ) {
+        // 将副作用函数与 ITERATE_KEY 关联
+        tarck( target,ITERATE_KEY )
+        return Reflect.ownKeys( target )
     }
 } )
 
