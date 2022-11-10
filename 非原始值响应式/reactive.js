@@ -71,9 +71,8 @@ function createReactive( data,isShallow = false,isReadOnly = false ) {
                 return res
             }
 
-            // 如果还是一个对象,递归 proxy
             if( typeof res === "object" && res !== null ) {
-                return reactive( res )
+                return isReadOnly ? readonly(res) : reactive( res )
             }
             return res
         },
