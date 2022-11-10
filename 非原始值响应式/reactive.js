@@ -49,51 +49,61 @@ function computed( getter ) {
 
 const bucket = new WeakMap()
 const ITERATE_KEY = Symbol()
-const data = { foo:NaN }
-const obj = new Proxy( data,{
-    get:function( target,key,receiver ){
-        tarck( target,key )
-        // 使用 Reflect.get 返回读取到的属性值
-        return Reflect.get( target,key,receiver )
-    },
-    set:function( target,key,newVal,receiver ){
-        // 获取旧值
-        const oldVal = target[key]
+function reactive( obj ) {
+    return new Proxy( obj,{
+        get:function( target,key,receiver ){
 
-        // 判断属性是否存在，并设置 type
-        const type = Object.prototype.hasOwnProperty.call( target,key ) ? "SET" : "ADD"
+            // 代理对象可以通过 raw 属性访问原始数据
+            if( key === 'raw' ) {
+                return target
+            }
 
-        // 设置属性值
-        const res = Reflect.set( target,key,newVal,receiver )
-        
-        // 比较新值和旧值,只要不全等就触发响应
-        if( oldVal !== newVal && ( oldVal === oldVal || newVal === newVal ) ) {
-            trigger( target,key,type )
+            tarck( target,key )
+            // 使用 Reflect.get 返回读取到的属性值
+            return Reflect.get( target,key,receiver )
+        },
+        set:function( target,key,newVal,receiver ){
+            // 获取旧值
+            const oldVal = target[key]
+    
+            // 判断属性是否存在，并设置 type
+            const type = Object.prototype.hasOwnProperty.call( target,key ) ? "SET" : "ADD"
+    
+            // 设置属性值
+            const res = Reflect.set( target,key,newVal,receiver )
+
+            // target === receiver.raw 说明 receiver 就是 target 的代理对象
+            if( target === receiver.raw ){
+                if( oldVal !== newVal && ( oldVal === oldVal || newVal === newVal ) ) {
+                    trigger( target,key,type )
+                }
+            }
+            
+            return res
+        },
+        deleteProperty:function( target,key ) {
+            // 检测被操作的属性是否在对象上存在
+            const hasKey = Object.prototype.hasOwnProperty.call( target,key )
+            // 利用 Reflect.deleProperty 完成属性的删除
+            const res = Reflect.deleteProperty( target,key )
+    
+            if( hasKey && res ) {
+                // 只有存在被删除的属性时并且成功删除时,才触发更新
+                trigger( target,key,"DELETE" )
+            }
+            return res
+        },
+        has:function( target,key ) {
+            tarck( target,key )
+            return Reflect.has( target,key )
+        },
+        ownKeys:function( target ) {
+            // 将副作用函数与 ITERATE_KEY 关联
+            tarck( target,ITERATE_KEY )
+            return Reflect.ownKeys( target )
         }
-        return res
-    },
-    deleteProperty:function( target,key ) {
-        // 检测被操作的属性是否在对象上存在
-        const hasKey = Object.prototype.hasOwnProperty.call( target,key )
-        // 利用 Reflect.deleProperty 完成属性的删除
-        const res = Reflect.deleteProperty( target,key )
-
-        if( hasKey && res ) {
-            // 只有存在被删除的属性时并且成功删除时,才触发更新
-            trigger( target,key,"DELETE" )
-        }
-        return res
-    },
-    has:function( target,key ) {
-        tarck( target,key )
-        return Reflect.has( target,key )
-    },
-    ownKeys:function( target ) {
-        // 将副作用函数与 ITERATE_KEY 关联
-        tarck( target,ITERATE_KEY )
-        return Reflect.ownKeys( target )
-    }
-} )
+    } )
+}
 
 function tarck( target,key ) {
     if( !activeEffect ) return
@@ -229,8 +239,10 @@ function traverse( value, seen = new Set() ) {
     return value
 }
 
-effect( () => {
-    console.log( "effect=>",obj.foo );
-} )
-
-obj.foo = NaN
+module.exports = {
+    reactive,
+    computed,
+    effect,
+    watch,
+    flushJob
+}
