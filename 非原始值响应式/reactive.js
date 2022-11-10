@@ -49,10 +49,7 @@ function computed( getter ) {
 
 const bucket = new WeakMap()
 const ITERATE_KEY = Symbol()
-const data = {
-    foo:1,
-    bar:2
-}
+const data = { foo:NaN }
 const obj = new Proxy( data,{
     get:function( target,key,receiver ){
         tarck( target,key )
@@ -70,7 +67,7 @@ const obj = new Proxy( data,{
         const res = Reflect.set( target,key,newVal,receiver )
         
         // 比较新值和旧值,只要不全等就触发响应
-        if( oldVal !== newVal ) {
+        if( oldVal !== newVal && ( oldVal === oldVal || newVal === newVal ) ) {
             trigger( target,key,type )
         }
         return res
@@ -236,4 +233,4 @@ effect( () => {
     console.log( "effect=>",obj.foo );
 } )
 
-obj.foo = 1
+obj.foo = NaN
