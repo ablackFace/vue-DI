@@ -1,7 +1,9 @@
-const { effect, shallowReadonly } = require("./reactive")
+const { reactive, effect } = require("./reactive")
 
-const data = shallowReadonly( { foo:{ bar:1 } } )
+const date = reactive(["foo"])
+
 effect( () => {
-    console.log( "effect=>",data.foo.bar )
+    console.log( "effect=>",date[0] )
 } )
-data.foo.bar = 2
+
+date[0] = "bar"
