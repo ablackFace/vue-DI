@@ -3,7 +3,10 @@ const { reactive, effect } = require("./reactive")
 const date = reactive(["foo"])
 
 effect( () => {
-    console.log( "effect=>",date[0] )
+    for( const key in date ) {
+        console.log( "for...in=>",key )
+    }
 } )
 
+date[1] = "bar"
 date.length = 0

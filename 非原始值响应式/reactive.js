@@ -121,8 +121,8 @@ function createReactive( data,isShallow = false,isReadOnly = false ) {
             return Reflect.has( target,key )
         },
         ownKeys:function( target ) {
-            // 将副作用函数与 ITERATE_KEY 关联
-            tarck( target,ITERATE_KEY )
+            // 如果操作对象是数组，则使用 length 属性作为 key 并建立响应联系
+            tarck( target, Array.isArray(target) ? 'length' : ITERATE_KEY )
             return Reflect.ownKeys( target )
         }
     } )

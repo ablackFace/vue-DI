@@ -175,3 +175,41 @@ function trigger( target,key,type,newVal ) {
 ```
 
 新值指的是新的 length 属性值，它代表新的数组长度。接着，我们判断操作的目标是否是数组，如果是，则需要找到所有索引值大于或等于新的 length 值的元素，然后把与它们相关联的副作用函数取出并执行。
+
+## 数组遍历
+
+### `for...in`
+
+数组是可遍历的 `for...in`：
+
+```js
+const date = reactive(["foo"])
+
+effect( () => {
+    for( const key in date ) {
+        console.log( "for...in=>",key )
+    }
+} )
+
+date[1] = "bar"
+date.length = 0
+```
+
+影响 数组 `for...in` 循环对数组的遍历的
+
+- 添加新元素：`arr[100] = 'bar'`。
+- 修改数组长度：`arr.length = 0`。
+
+无论是为数组添加新元素，还是直接修改数组的长度，本质上都是因为修改了数组的 length 属性。
+
+在 ownKeys 拦截函数内，判断当前操作目标 target 是否是数组，如果是，则使用 length 作为 key 去建立响应联系：
+
+```js
+ownKeys:function( target ) {
+    // 如果操作对象是数组，则使用 length 属性作为 key 并建立响应联系
+    tarck( target, Array.isArray(target) ? 'length' : ITERATE_KEY )
+    return Reflect.ownKeys( target )
+}
+```
+
+这样无论是为数组添加新元素，还是直接修改 length 属性，都能够正确地触发响应。
