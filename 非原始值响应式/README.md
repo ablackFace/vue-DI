@@ -48,5 +48,53 @@ date[0] = "bar"
 -  修改数组长度：arr.length = 0。
 
 - 数组的栈方法：push/pop/shift/unshift。
-
 - 修改原数组的原型方法：splice/fill/sort 等。
+
+## 数组的索引与 length
+
+```js
+const date = reactive(["foo"])
+date[1] = "bar"
+```
+
+如果设置的索引值大于数组当前的长度，那么要更新数组的 length 属性。
+
+修改 set 拦截函数，如下面的代码所示：
+
+```js
+set:function( target,key,newVal,receiver ){
+	// ...
+
+	 // 判断代理目标是否是数组 (Array)
+    const type =  Array.isArray( target ) 
+    	// 如果代理目标是数组，则检测被设置的索引值是否小于数组长度
+    	// 如果是，则视为 SET，否则是 ADD 操作
+    	? Number(key) < target.length ? "SET" : "ADD"
+    	: Object.prototype.hasOwnProperty.call( target,key ) ? "SET" : "ADD"
+
+	// ...
+}
+```
+
+在 trigger 函数中正确地触发与数组对象的 length 属性相关联的副作用函数重新执行了：
+
+```js
+function trigger( target,key,type ) {
+    // ...
+    
+    // 当操作类型是 ADD 并且目标是数组时，取出并执行与 length 属性相关联的副作用函数
+    if( type === "ADD" && Array.isArray( target ) ) {
+        // 取出与 length 属性相关联的副作用函数
+        const lengthEffects = depsMap.get("length")
+        // 将这些副作用函数添加到 effectsToRun 中，待执行
+        lengthEffects && lengthEffects.forEach( effectFn => {
+            if( effectFn !== activeEffect ) {
+                effectsToRun.add( effectFn )
+            }
+        } )
+    }
+    
+    // ...
+}
+```
+

@@ -77,22 +77,22 @@ function createReactive( data,isShallow = false,isReadOnly = false ) {
             return res
         },
         set:function( target,key,newVal,receiver ){
-            // 如果是只读的，打印警告信息并返回
             if( isReadOnly ) {
                 console.warn( `属性 ${key} 是只读的` )
                 return true
             }
 
-            // 获取旧值
             const oldVal = target[key]
+            
+            // 判断代理目标是否是数组 (Array)
+            const type =  Array.isArray( target ) 
+                // 如果代理目标是数组，则检测被设置的索引值是否小于数组长度
+                // 如果是，则视为 SET，否则是 ADD 操作
+                ? Number(key) < target.length ? "SET" : "ADD"
+                : Object.prototype.hasOwnProperty.call( target,key ) ? "SET" : "ADD"
     
-            // 判断属性是否存在，并设置 type
-            const type = Object.prototype.hasOwnProperty.call( target,key ) ? "SET" : "ADD"
-    
-            // 设置属性值
             const res = Reflect.set( target,key,newVal,receiver )
 
-            // target === receiver.raw 说明 receiver 就是 target 的代理对象
             if( target === receiver.raw ){
                 if( oldVal !== newVal && ( oldVal === oldVal || newVal === newVal ) ) {
                     trigger( target,key,type )
@@ -175,12 +175,21 @@ function trigger( target,key,type ) {
         }
     } )
 
-    // 如果操作类型时 ADD 或者 DELETE，才触发 ITERATE_KEY 相关的副作用函数重新执行
     if( type === "ADD" || type === "DELETE" ) {
-        // 取得与 ITERATE_KEY 关联的副作用函数
         const iterateEffects = depsMap.get( ITERATE_KEY )
-        // 将与 ITERATE_KEY 相关联的副作用函数添加到 effectsToRun
         iterateEffects && iterateEffects.forEach( effectFn => {
+            if( effectFn !== activeEffect ) {
+                effectsToRun.add( effectFn )
+            }
+        } )
+    }
+
+    // 当操作类型是 ADD 并且目标是数组时，取出并执行与 length 属性相关联的副作用函数
+    if( type === "ADD" && Array.isArray( target ) ) {
+        // 取出与 length 属性相关联的副作用函数
+        const lengthEffects = depsMap.get("length")
+        // 将这些副作用函数添加到 effectsToRun 中，待执行
+        lengthEffects && lengthEffects.forEach( effectFn => {
             if( effectFn !== activeEffect ) {
                 effectsToRun.add( effectFn )
             }
