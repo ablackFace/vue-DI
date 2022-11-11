@@ -84,10 +84,7 @@ function createReactive( data,isShallow = false,isReadOnly = false ) {
 
             const oldVal = target[key]
             
-            // 判断代理目标是否是数组 (Array)
             const type =  Array.isArray( target ) 
-                // 如果代理目标是数组，则检测被设置的索引值是否小于数组长度
-                // 如果是，则视为 SET，否则是 ADD 操作
                 ? Number(key) < target.length ? "SET" : "ADD"
                 : Object.prototype.hasOwnProperty.call( target,key ) ? "SET" : "ADD"
     
@@ -95,7 +92,8 @@ function createReactive( data,isShallow = false,isReadOnly = false ) {
 
             if( target === receiver.raw ){
                 if( oldVal !== newVal && ( oldVal === oldVal || newVal === newVal ) ) {
-                    trigger( target,key,type )
+                    // 增加第四个参数，即触发响应的新值
+                    trigger( target,key,type,newVal )
                 }
             }
             
@@ -163,7 +161,7 @@ function tarck( target,key ) {
     activeEffect.deps.push( deps )
 }
 
-function trigger( target,key,type ) {
+function trigger( target,key,type,newVal ) {
     const depsMap = bucket.get( target )
     if( !depsMap ) return
     const effects = depsMap.get( key )
@@ -184,14 +182,26 @@ function trigger( target,key,type ) {
         } )
     }
 
-    // 当操作类型是 ADD 并且目标是数组时，取出并执行与 length 属性相关联的副作用函数
     if( type === "ADD" && Array.isArray( target ) ) {
-        // 取出与 length 属性相关联的副作用函数
         const lengthEffects = depsMap.get("length")
-        // 将这些副作用函数添加到 effectsToRun 中，待执行
         lengthEffects && lengthEffects.forEach( effectFn => {
             if( effectFn !== activeEffect ) {
                 effectsToRun.add( effectFn )
+            }
+        } )
+    }
+
+    // 如果操作目标时数组，并且修改了数组的 length 属性
+    if( Array.isArray( target ) && key === "length" ) {
+        // 对于索引大于或等于新的 length 时，
+        // 需要把所有相关联的副作用函数取出并添加到 effectsToRun 中待执行
+        depsMap.forEach( ( effects,key ) => {
+            if( key >= newVal ) {
+                effects.forEach( effectFn => {
+                    if( effectFn !== activeEffect ) {
+                        effectsToRun.add( effectFn )
+                    }
+                } )
             }
         } )
     }

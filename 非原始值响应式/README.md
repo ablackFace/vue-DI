@@ -52,6 +52,8 @@ date[0] = "bar"
 
 ## 数组的索引与 length
 
+### 索引
+
 ```js
 const date = reactive(["foo"])
 date[1] = "bar"
@@ -98,3 +100,78 @@ function trigger( target,key,type ) {
 }
 ```
 
+### length
+
+在副作用函数内访问了数组的第 0 个元素，接着将数组的length 属性修改为 0。
+
+```js
+const { reactive, effect } = require("./reactive")
+
+const date = reactive(["foo"])
+
+effect( () => {
+    console.log( "effect=>",date[0] )
+} )
+
+date.length = 0
+```
+
+并非所有对 length 属性的修改都会影响数组中的已有元素，拿上例来说，如果我们将 length 属性设置为 100，这并不会影响第 0 个元素，所以也就不需要触发副作用函数重新执行。
+
+**当修改 length 属性值时，只有那些索引值大于或等于新的 length 属性值的元素才需要触发响应。**
+
+修改 set 拦截函数。在调用 trigger 函数触发响应时，应该把新的属性值传递过去：
+
+```js
+set:function( target,key,newVal,receiver ){
+	// ...
+
+	if( target === receiver.raw ){
+        if( oldVal !== newVal && ( oldVal === oldVal || newVal === newVal ) ) {
+            // 增加第四个参数，即触发响应的新值
+            trigger( target,key,type,newVal )
+        }
+    }
+
+	// ...
+}
+```
+
+修改 trigger 函数，为 trigger 函数增加了第四个参数，即触发响应时的新值：
+
+```js
+function trigger( target,key,type,newVal ) {
+    const depsMap = bucket.get( target )
+    if( !depsMap ) return
+    const effects = depsMap.get( key )
+    
+    const effectsToRun = new Set()
+    
+    //...
+
+    // 如果操作目标时数组，并且修改了数组的 length 属性
+    if( Array.isArray( target ) && key === "length" ) {
+        // 对于索引大于或等于新的 length 时，
+        // 需要把所有相关联的副作用函数取出并添加到 effectsToRun 中待执行
+        depsMap.forEach( ( effects,key ) => {
+            if( key >= newVal ) {
+                effects.forEach( effectFn => {
+                    if( effectFn !== activeEffect ) {
+                        effectsToRun.add( effectFn )
+                    }
+                } )
+            }
+        } )
+    }
+
+    effectsToRun.forEach( effectFn => {
+        if( effectFn.options.scheduler ) {
+            effectFn.options.scheduler( effectFn )
+        } else {
+            effectFn()
+        }
+    } )
+}
+```
+
+新值指的是新的 length 属性值，它代表新的数组长度。接着，我们判断操作的目标是否是数组，如果是，则需要找到所有索引值大于或等于新的 length 值的元素，然后把与它们相关联的副作用函数取出并执行。
