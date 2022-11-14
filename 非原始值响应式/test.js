@@ -1,10 +1,10 @@
 const { reactive, effect } = require("./reactive")
 
-const date = reactive(["foo"])
+const date = reactive([1,2,3,4,5])
 
 effect( () => {
-    for( const key in date ) {
-        console.log( "for...in=>",key )
+    for( const val of date ) {
+        console.log( "for...of=>",val )
     }
 } )
 

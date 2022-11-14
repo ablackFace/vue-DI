@@ -58,8 +58,8 @@ function createReactive( data,isShallow = false,isReadOnly = false ) {
                 return target
             }
 
-            // 非只读的时候才建立副作用联系
-            if( !isReadOnly ) {
+            // 添加判断，如果 key 的类型是 symbol，则不进行追踪
+            if( !isReadOnly && typeof key !== "symbol" ) {
                 tarck( target,key )
             }
 

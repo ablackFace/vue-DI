@@ -202,7 +202,7 @@ date.length = 0
 
 无论是为数组添加新元素，还是直接修改数组的长度，本质上都是因为修改了数组的 length 属性。
 
-在 ownKeys 拦截函数内，判断当前操作目标 target 是否是数组，如果是，则使用 length 作为 key 去建立响应联系：
+在 `ownKeys` 拦截函数内，判断当前操作目标 target 是否是数组，如果是，则使用 length 作为 key 去建立响应联系：
 
 ```js
 ownKeys:function( target ) {
@@ -213,3 +213,87 @@ ownKeys:function( target ) {
 ```
 
 这样无论是为数组添加新元素，还是直接修改 length 属性，都能够正确地触发响应。
+
+### `for...of`
+
+与`for...in` 不同，`for...of` 是用来遍历**可迭代对象**。
+
+一个对象能否被迭代，取决于该对象或者该对象的原型是否实现了 `@@iterator` 方法。
+
+`@@[name]` 标志在 `ECMAScript` 规范里用来代指 `JavaScript` 内建的 `symbols` 值，例如 `@@iterator` 指的就是 `Symbol.iterator` 这个值。**如果一个对象实现了`Symbol.iterator` 方法，那么这个对象就是可以迭代的**。例如：
+
+```js
+const obj = {
+    val: 0,
+    [Symbol.iterator]: function(){
+        return {
+            next: function(){
+                return {
+                    value: obj.val++,
+                    done: obj.val > 10 ? true : false
+                }
+            }
+        }
+    }
+}
+```
+
+该对象实现了 `Symbol.iterator`方法，因此它可以使用 `for...of`循环遍历。
+
+数组内创建了 `Symbol.interator` 方法，因此也可以使用 `for...of` 遍历。
+
+```js
+const arr = [1, 2, 3, 4, 5]
+// 获取并调用数组内建的迭代器方法
+const itr = arr[Symbol.iterator]()
+
+console.log(itr.next())  // {value: 1, done: false}
+console.log(itr.next())  // {value: 2, done: false}
+console.log(itr.next())  // {value: 3, done: false}
+console.log(itr.next())  // {value: 4, done: false}
+console.log(itr.next())  // {value: 5, done: false}
+console.log(itr.next())  // {value: undefined, done: true}
+```
+
+数组迭代器的执行会读取数组的 `length` 属性。如果迭代的是数组元素值，还会读取数组的索引。
+
+迭代数组时，只需要在副作用函数与数组的长度和索引之间建立响应联系，就能够实现响应式的 `for...of` 迭代：
+
+```js
+const date = reactive([1,2,3,4,5])
+
+effect( () => {
+    for( const val of date ) {
+        console.log( "for...of=>",val )
+    }
+} )
+
+date[1] = "bar"
+date.length = 0
+```
+
+不需要增加任何代码就能够使其正确地工作。这是因为只要数组的长度和元素值发生改变，副作用函数自然会重新执行。**数组的 values 方法的返回值实际上就是数组内建的迭代器**。
+
+```js
+Array.prototype.values === Array.prototype[Symbol.iterator] // true
+```
+
+无论是使用 `for...of` 循环，还是调用 `values` 等方法，它们都会读取数组的 `Symbol.iterator` 属性。但是为了避免发生意外，不因该把副作用函数与 `Symbol.iterator` 这类 `Symbol` 值建立响应式联系，因此需要修改 `get` 拦截函数。
+
+```js
+get:function( target,key,receiver ){
+    if( key === 'raw' ) {
+        return target
+    }
+
+    // 添加判断，如果 key 的类型是 symbol，则不进行追踪
+    if( !isReadOnly && typeof key !== "symbol" ) {
+        tarck( target,key )
+    }
+    
+   //... 
+    
+    return res
+},
+```
+
