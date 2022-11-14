@@ -68,7 +68,7 @@ const arrayInstrumentations = {};
 // 标记变量，代表是否进行追踪
 let shouldTrack = true;
 // 重写数组 push 方法
-["push"].forEach( method => {
+["push","pop","shift","unshift","splice"].forEach( method => {
     // 获取原始方法
     const originMethod = Array.prototype[method]
     // 重写方法
