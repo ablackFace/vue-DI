@@ -47,21 +47,23 @@ function computed( getter ) {
     return obj
 }
 
-const originMethod = Array.prototype.includes
-const arrayInstrumentations = {
-    includes:function( ...args ) {
+const arrayInstrumentations = {}
+
+["includes","indexOf","lastIndexOf"].forEach( method => {
+    const originMethod = Array.prototype[method]
+    arrayInstrumentations[method] = function( ...args ) {
         // this 是代理对象，先在代理对象中查找，将结果储存到 res
         let res = originMethod.apply( this,args )
 
         // 如果 res 没找到，通过 this.raw 继续查找
-        if( res === false ) {
+        if( res === false || res === -1 ) {
             res = originMethod.apply( this.raw,args )
         }
 
         // 最终结果
         return res
     }
-}
+} )
 
 const bucket = new WeakMap()
 const ITERATE_KEY = Symbol()
