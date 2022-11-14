@@ -47,7 +47,7 @@ function computed( getter ) {
     return obj
 }
 
-const arrayInstrumentations = {}
+const arrayInstrumentations = {};
 
 ["includes","indexOf","lastIndexOf"].forEach( method => {
     const originMethod = Array.prototype[method]
@@ -61,6 +61,24 @@ const arrayInstrumentations = {}
         }
 
         // 最终结果
+        return res
+    }
+} )
+
+// 标记变量，代表是否进行追踪
+let shouldTrack = true;
+// 重写数组 push 方法
+["push"].forEach( method => {
+    // 获取原始方法
+    const originMethod = Array.prototype[method]
+    // 重写方法
+    arrayInstrumentations[method] = function( ...args ) {
+        // 调用原始方法之前，禁止追踪
+        shouldTrack = false
+        // push 方法的默认行为
+        let res = originMethod.apply( this,args )
+        // 调用方法结束后，恢复原来的行为，允许追踪
+        shouldTrack = true
         return res
     }
 } )
@@ -177,7 +195,8 @@ function shallowReadonly( data ) {
 }
 
 function tarck( target,key ) {
-    if( !activeEffect ) return
+    // 禁止追踪时，return
+    if( !activeEffect || !shouldTrack ) return
 
     let depsMap = bucket.get( target )
     if( !depsMap ) {
