@@ -1,12 +1,8 @@
 const { reactive, effect } = require("./reactive")
 
-const date = reactive([1,2,3,4,5])
+const obj = {foo:1}
+const date = reactive([obj])
 
 effect( () => {
-    for( const val of date ) {
-        console.log( "for...of=>",val )
-    }
+    console.log( "arr.includes=>",date.includes( obj ) )
 } )
-
-date[1] = "bar"
-date.length = 0

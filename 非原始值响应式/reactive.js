@@ -128,8 +128,15 @@ function createReactive( data,isShallow = false,isReadOnly = false ) {
     } )
 }
 
-function reactive( data ) {
-    return createReactive( data )
+const reactiveMap = new Map()
+function reactive( obj ) {
+    const existionsProxy = reactiveMap.get( obj )
+    if( existionsProxy ) return existionsProxy
+
+    const proxy = createReactive( obj )
+    reactiveMap.set( obj,proxy )
+
+    return proxy
 }
 
 function shallowReactive( data ) {
