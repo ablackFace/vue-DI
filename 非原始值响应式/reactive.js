@@ -47,15 +47,38 @@ function computed( getter ) {
     return obj
 }
 
+const originMethod = Array.prototype.includes
+const arrayInstrumentations = {
+    includes:function( ...args ) {
+        // this 是代理对象，先在代理对象中查找，将结果储存到 res
+        let res = originMethod.apply( this,args )
+
+        // 如果 res 没找到，通过 this.raw 继续查找
+        if( res === false ) {
+            res = originMethod.apply( this.raw,args )
+        }
+
+        // 最终结果
+        return res
+    }
+}
+
 const bucket = new WeakMap()
 const ITERATE_KEY = Symbol()
 function createReactive( data,isShallow = false,isReadOnly = false ) {
     return new Proxy( data,{
         get:function( target,key,receiver ){
+            console.log("get:",key)
 
             // 代理对象可以通过 raw 属性访问原始数据
             if( key === 'raw' ) {
                 return target
+            }
+
+            // 如果操作的对象是数组，并且 key 在 arrayInstrumentations 上
+            // 那么就返回定义在 arrayInstrumentations 上的值
+            if( Array.isArray( target ) && arrayInstrumentations.hasOwnProperty( key ) ) {
+                return Reflect.get( arrayInstrumentations,key,receiver )
             }
 
             // 添加判断，如果 key 的类型是 symbol，则不进行追踪
