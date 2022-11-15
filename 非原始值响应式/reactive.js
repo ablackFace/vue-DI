@@ -96,6 +96,9 @@ function createReactive( data,isShallow = false,isReadOnly = false ) {
                 return Reflect.get( target,key,target )
             }
 
+            // 将方法与原始对象数据 target 绑定并返回
+            return target[key].bind( target )
+
             // 代理对象可以通过 raw 属性访问原始数据
             if( key === 'raw' ) {
                 return target
