@@ -1,13 +1,6 @@
 const { reactive, effect } = require("./reactive")
 
-const arr = reactive([1])
+const s = new Set( [1,2,3] )
+const p = reactive(s)
 
-effect( () => {
-    arr.push( 1 )
-} )
-
-effect( () => {
-    arr.push( 2 )
-} )
-
-console.log( arr )
+console.log(p.size)
