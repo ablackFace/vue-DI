@@ -86,12 +86,16 @@ let shouldTrack = true;
 // 定义一个对象，将自定义 add 方法定义到对象中
 const mutableInstrumentations = {
     add( key ){
-        // this 指向的是代理对象，通过 raw 属性获取原始对象
         const target = this.raw
-        // 通过原始对象执行 add 方法添加具体值
+        
+        // 判断当前添加的值是否存在
+        const hadKey = target.has( key )
         const res = target.add( key )
-        // 调用 trigger 方法，触发副作用函数，指定触发类型为 ADD
-        trigger( target,key,"ADD" )
+
+        // 如果当前添加的值不存在才触发副作用函数
+        if( !hadKey ) {
+            trigger( target,key,"ADD" )
+        }
         return res
     }
 }
