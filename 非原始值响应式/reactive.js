@@ -83,6 +83,19 @@ let shouldTrack = true;
     }
 } )
 
+// 定义一个对象，将自定义 add 方法定义到对象中
+const mutableInstrumentations = {
+    add( key ){
+        // this 指向的是代理对象，通过 raw 属性获取原始对象
+        const target = this.raw
+        // 通过原始对象执行 add 方法添加具体值
+        const res = target.add( key )
+        // 调用 trigger 方法，触发副作用函数，指定触发类型为 ADD
+        trigger( target,key,"ADD" )
+        return res
+    }
+}
+
 const bucket = new WeakMap()
 const ITERATE_KEY = Symbol()
 function createReactive( data,isShallow = false,isReadOnly = false ) {
@@ -90,19 +103,17 @@ function createReactive( data,isShallow = false,isReadOnly = false ) {
         get:function( target,key,receiver ){
             console.log("get:",key)
 
-            // 如果读取的 size 属性
+            // 获取原始数据
+            if( key === "raw" ) return target
+
             if( key === "size" ) {
-                // 指定第三个参数 receiver 为 target
+                // 建立 Set.size 响应式联系
+                tarck( target,ITERATE_KEY )
                 return Reflect.get( target,key,target )
             }
 
-            // 将方法与原始对象数据 target 绑定并返回
-            return target[key].bind( target )
-
-            // 代理对象可以通过 raw 属性访问原始数据
-            if( key === 'raw' ) {
-                return target
-            }
+            // 返回定义 mutableInstrumentations 对象下的方法
+            return mutableInstrumentations[key]
 
             // 如果操作的对象是数组，并且 key 在 arrayInstrumentations 上
             // 那么就返回定义在 arrayInstrumentations 上的值
@@ -233,6 +244,7 @@ function trigger( target,key,type,newVal ) {
         }
     } )
 
+    // ADD || DELETE 类型副作用函数 ITERATE_KEY
     if( type === "ADD" || type === "DELETE" ) {
         const iterateEffects = depsMap.get( ITERATE_KEY )
         iterateEffects && iterateEffects.forEach( effectFn => {
