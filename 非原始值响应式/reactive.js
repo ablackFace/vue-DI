@@ -98,13 +98,25 @@ const mutableInstrumentations = {
         }
         return res
     },
+    get( key ) {
+        const target = this.raw
+        const had = target.has( key )
+        tarck( target,key )
+
+        if( had ) {
+            const res = target.get( key )
+            return typeof res === "object" ? reactive( res ) : res
+        }
+    },
     set( key,value ) {
         const target = this.raw
         const had = target.has( key )
         // 获取旧值
         const oldValue = target.get( key )
-        // 设置新的值
-        target.set( key,value )
+
+        // 获取原始数据
+        const RawValue = value.raw || value
+        target.set( key,RawValue )
 
         // 如果不存在该值，触发 ADD 响应式
         if( !had ) {
@@ -268,7 +280,7 @@ function trigger( target,key,type,newVal ) {
     } )
 
     // ADD || DELETE 类型副作用函数 ITERATE_KEY
-    if( type === "ADD" || type === "DELETE" ) {
+    if( type === "ADD" || type === "DELETE" || type === "SET" ) {
         const iterateEffects = depsMap.get( ITERATE_KEY )
         iterateEffects && iterateEffects.forEach( effectFn => {
             if( effectFn !== activeEffect ) {
