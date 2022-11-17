@@ -1,9 +1,11 @@
 const { reactive, effect } = require("./reactive")
 
-const s = new Set( [1,2,3] )
-const p = reactive(s)
+const m = new Map([
+    [ "key",1 ]
+])
+const p = reactive(m)
 
 effect( () => {
-    console.log("建立响应式链接=>",p.size)
+    console.log("建立响应式链接=>",p)
 } )
-p.add(1)
+p.set( "key",2 )

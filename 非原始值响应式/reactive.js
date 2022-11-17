@@ -97,6 +97,25 @@ const mutableInstrumentations = {
             trigger( target,key,"ADD" )
         }
         return res
+    },
+    set( key,value ) {
+        const target = this.raw
+        const had = target.has( key )
+        // 获取旧值
+        const oldValue = target.get( key )
+        // 设置新的值
+        target.set( key,value )
+
+        // 如果不存在该值，触发 ADD 响应式
+        if( !had ) {
+            trigger( target,key,"ADD" )
+        } else if(
+            ( oldValue !== value )
+            || ( oldValue === oldValue && value === value )
+        ) {
+            // 如果不存在，并且值变了，触发 SET 响应式
+            trigger( target,key,"SET" )
+        }
     }
 }
 
