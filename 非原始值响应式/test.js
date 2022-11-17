@@ -6,4 +6,4 @@ const p = reactive(s)
 effect( () => {
     console.log("建立响应式链接=>",p.size)
 } )
-p.add(1)
+p.delete( 1 )

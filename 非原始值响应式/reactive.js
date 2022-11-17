@@ -97,6 +97,17 @@ const mutableInstrumentations = {
             trigger( target,key,"ADD" )
         }
         return res
+    },
+    delete( key ){
+        const target = this.raw
+        const hadKey = target.has( key )
+        const res = target.delete( key )
+
+        // 如果要删除的元素存在时，才触发响应
+        if( hadKey ) {
+            trigger( target,key,"DELETE" )
+        }
+        return res
     }
 }
 
