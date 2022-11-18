@@ -1,9 +1,16 @@
 const { reactive, effect } = require("./reactive")
 
-const s = new Set( [1,2,3] )
-const p = reactive(s)
+// 原始数据
+const m = new Map()
 
+// 响应式数据
+const p1 = reactive( m )
+const p2 = reactive( new Map() )
+
+// 设置响应式数据
+p1.set( "p2",p2 )
 effect( () => {
-    console.log("建立响应式链接=>",p.size)
+    console.log( "effect=>",m.get( "p2" ).size )
 } )
-p.delete( 1 )
+// 设置原始数据，可以触发响应式
+m.get( "p2" ).set( "foo",1 )
