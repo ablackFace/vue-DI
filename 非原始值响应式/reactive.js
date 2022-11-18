@@ -108,6 +108,7 @@ const mutableInstrumentations = {
             trigger( target,key,"DELETE" )
         }
         return res
+    },
     get( key ) {
         const target = this.raw
         const had = target.has( key )
@@ -138,6 +139,14 @@ const mutableInstrumentations = {
             // 如果不存在，并且值变了，触发 SET 响应式
             trigger( target,key,"SET" )
         }
+    },
+    forEach( callback ) {
+        // 获取原始对象
+        const target = this.raw
+        // 与 ITERATE_KEY 建立响应式联系
+        tarck( target,ITERATE_KEY )
+        // 通过原始对象调用 callback，并把 callback 传递过去
+        target.forEach( callback )
     }
 }
 

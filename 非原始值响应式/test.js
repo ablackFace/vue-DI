@@ -1,16 +1,17 @@
 const { reactive, effect } = require("./reactive")
 
-// 原始数据
-const m = new Map()
+const m = new Map([
+    [ { key:1 },{value:1} ]
+])
 
-// 响应式数据
-const p1 = reactive( m )
-const p2 = reactive( new Map() )
+const p = reactive( m )
 
-// 设置响应式数据
-p1.set( "p2",p2 )
 effect( () => {
-    console.log( "effect=>",m.get( "p2" ).size )
+    p.forEach( function ( value,key,m ) {
+        console.log( "value=>",value )
+        console.log( "key=>",key )
+    } )
+    console.log( "effect=>",p )
 } )
-// 设置原始数据，可以触发响应式
-m.get( "p2" ).set( "foo",1 )
+
+p.set( {key:2},{ value:2 } )
