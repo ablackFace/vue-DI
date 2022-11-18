@@ -141,12 +141,17 @@ const mutableInstrumentations = {
         }
     },
     forEach( callback ) {
+        // 创建 wrap 函数，把可代理的数据利用 reactive 转换为响应式
+        const wrap = val => typeof val === "object" ? reactive( val ) : val
         // 获取原始对象
         const target = this.raw
         // 与 ITERATE_KEY 建立响应式联系
         tarck( target,ITERATE_KEY )
-        // 通过原始对象调用 callback，并把 callback 传递过去
-        target.forEach( callback )
+        // 通过 target 调用原始数据的 forEach
+        target.forEach(( v,k ) => {
+            // 手动调用 callback，利用 wrap 函数处理 key，value 的数据
+            callback( wrap(v),wrap(k),this )
+        })
     }
 }
 
